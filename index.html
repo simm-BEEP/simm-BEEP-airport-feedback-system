@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>石家庄国际机场安检反馈系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1e40af',
+                        secondary: '#3b82f6',
+                        accent: '#93c5fd',
+                        neutral: '#f1f5f9',
+                        success: '#10b981',
+                        warning: '#f59e0b',
+                        danger: '#ef4444',
+                        dark: '#0f172a',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .feedback-shadow {
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            }
+            .btn-hover {
+                transition: all 0.3s ease;
+            }
+            .btn-hover:hover {
+                transform: translateY(-2px);
+            }
+            .new-feedback {
+                animation: pulse 2s infinite;
+            }
+            @keyframes pulse {
+                0% {
+                    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+                }
+                70% {
+                    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+                }
+                100% {
+                    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+                }
+            }
+            .solved {
+                opacity: 0.6;
+                filter: grayscale(0.5);
+            }
+            .unsolved {
+                border-left: 4px solid #ef4444;
+            }
+            .scale-hover {
+                transition: transform 0.3s ease;
+            }
+            .scale-hover:hover {
+                transform: scale(1.02);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans">
+    <!-- 顶部导航 -->
+    <header class="bg-primary text-white shadow-md">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <span class="text-2xl font-bold">石家庄国际机场安检反馈系统</span>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button id="loginBtn" class="bg-white text-primary px-4 py-2 rounded-md font-medium hover:bg-gray-100 transition-colors">
+                    管理员登录
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 md:py-12">
+        <div class="flex flex-col md:flex-row gap-8">
+            <!-- 左侧反馈提交区域 -->
+            <div class="w-full md:w-1/2 flex flex-col items-center">
+                <div class="bg-white rounded-xl p-6 md:p-8 w-full max-w-lg feedback-shadow scale-hover">
+                    <h2 class="text-2xl font-bold text-center mb-6 text-primary">提交反馈</h2>
+                    
+                    <form id="feedbackForm" class="space-y-4">
+                        <div class="space-y-2">
+                            <label class="block text-gray-700 font-medium">反馈类型</label>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                                <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-blue-50 transition-colors">
+                                    <input type="radio" name="feedbackType" value="complaint" class="mr-2 text-primary">
+                                    <span>投诉建议</span>
+                                </label>
+                                <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-blue-50 transition-colors">
+                                    <input type="radio" name="feedbackType" value="praise" class="mr-2 text-primary" checked>
+                                    <span>表扬赞许</span>
+                                </label>
+                                <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-blue-50 transition-colors">
+                                    <input type="radio" name="feedbackType" value="inquiry" class="mr-2 text-primary">
+                                    <span>问询解答</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="block text-gray-700 font-medium">是否需要回访</label>
+                            <div class="flex space-x-4">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="needCallback" value="yes" class="mr-2 text-primary" onclick="toggleContactFields(true)">
+                                    <span>需要</span>
+                                </label>
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="needCallback" value="no" class="mr-2 text-primary" checked onclick="toggleContactFields(false)">
+                                    <span>不需要</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div id="contactFields" class="space-y-4 hidden">
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-1">联系方式（至少填写一项）</label>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label class="text-sm text-gray-500">手机号</label>
+                                        <input type="tel" id="phone" name="phone" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary">
+                                    </div>
+                                    <div>
+                                        <label class="text-sm text-gray-500">微信</label>
+                                        <input type="text" id="wechat" name="wechat" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary">
+                                    </div>
+                                    <div>
+                                        <label class="text-sm text-gray-500">邮箱</label>
+                                        <input type="email" id="email" name="email" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label for="name" class="block text-gray-700 font-medium">您的姓名</label>
+                            <input type="text" id="name" name="name" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary">
+                        </div>
+
+                        <div class="space-y-2">
+                            <label for="flightNumber" class="block text-gray-700 font-medium">航班号</label>
+                            <input type="text" id="flightNumber" name="flightNumber" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary">
+                        </div>
+
+                        <div class="space-y-2">
+                            <label for="message" class="block text-gray-700 font-medium">留言内容</label>
+                            <textarea id="message" name="message" rows="4" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"></textarea>
+                        </div>
+
+                        <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg font-medium hover:bg-primary/90 btn-hover transition-all">
+                            提交反馈
+                        </button>
+                    </form>
+                </div>
+
+                <!-- 反馈查询 -->
+                <div class="mt-8 bg-white rounded-xl p-6 md:p-8 w-full max-w-lg feedback-shadow scale-hover">
+                    <h2 class="text-2xl font-bold text-center mb-6 text-primary">反馈查询</h2>
+                    
+                    <div class="space-y-4">
+                        <div class="space-y-2">
+                            <label for="searchName" class="block text-gray-700 font-medium">您的姓名</label>
+                            <input type="text" id="searchName" placeholder="请输入您的姓名" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary">
+                        </div>
+
+                        <button id="searchBtn" class="w-full bg-secondary text-white py-3 rounded-lg font-medium hover:bg-secondary/90 btn-hover transition-all">
+                            查询反馈
+                        </button>
+                    </div>
+
+                    <div id="searchResults" class="mt-6 hidden">
+                        <h3 class="text-lg font-medium mb-4">查询结果</h3>
+                        <div id="resultList" class="space-y-3">
+                            <!-- 结果将在这里动态显示 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧反馈列表区域 -->
+            <div id="feedbackListContainer" class="w-full md:w-1/2 hidden">
+                <div class="bg-white rounded-xl p-6 md:p-8 feedback-shadow">
+                    <h2 class="text-2xl font-bold text-center mb-6 text-primary">反馈列表</h2>
+                    
+                    <div id="emptyFeedback" class="py-12 text-center">
+                        <i class="fa fa-comments-o text-gray-400 text-5xl mb-4"></i>
+                        <p class="text-gray-500">暂无反馈内容</p>
+                    </div>
+                    
+                    <div id="feedbackList" class="space-y-4 hidden">
+                        <!-- 反馈项将在这里动态显示 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-dark text-white mt-12 py-8">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <p class="text-sm">石家庄国际机场旅检分部版权所有</p>
+                </div>
+                <div class="text-center md:text-right">
+                    <p class="text-sm">客服电话：0311-68137499</p>
+                    <p class="text-sm">网址：www.96360.com</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 管理员登录模态框 -->
+    <div id="loginModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4 transform transition-all scale-95 opacity-0" id="modalContent">
+            <h2 class="text-2xl font-bold mb-6 text-primary">管理员登录</h2>
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label for="adminUsername" class="block text-gray-700 font-medium mb-1">账号</label>
+                    <input type="text" id="adminUsername" placeholder="请输入账号" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary">
+                </div>
+                <div>
+                    <label for="adminPassword" class="block text-gray-700 font-medium mb-1">密码</label>
+                    <input type="password" id="adminPassword" placeholder="请输入密码" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary">
+                </div>
+                <div id="loginError" class="text-danger text-sm hidden">
+                    账号或密码错误
+                </div>
+                <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg font-medium hover:bg-primary/90 btn-hover transition-all">
+                    登录
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 管理员后台模态框 -->
+    <div id="adminModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl p-6 max-w-4xl w-full mx-4 h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-primary">管理员后台</h2>
+                <button id="closeAdminBtn" class="text-gray-500 hover:text-gray-700">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto">
+                <div id="adminFeedbackList" class="space-y-4">
+                    <!-- 管理员反馈列表将在这里动态显示 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新反馈提醒模态框 -->
+    <div id="newFeedbackAlert" class="fixed bottom-6 right-6 bg-white rounded-xl p-4 shadow-lg z-50 transform translate-y-20 opacity-0 transition-all duration-500 hidden">
+        <div class="flex items-start">
+            <div class="bg-primary text-white p-2 rounded-full mr-3">
+                <i class="fa fa-bell-o"></i>
+            </div>
+            <div>
+                <h3 class="font-medium text-gray-900">新反馈</h3>
+                <p class="text-sm text-gray-600">您有一条新的旅客反馈</p>
+                <button id="viewNewFeedbackBtn" class="text-primary text-sm mt-1">查看</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 存储反馈数据
+        let feedbackData = [];
+        let adminMode = false;
+        
+        // DOM元素
+        const feedbackForm = document.getElementById('feedbackForm');
+        const contactFields = document.getElementById('contactFields');
+        const loginBtn = document.getElementById('loginBtn');
+        const loginModal = document.getElementById('loginModal');
+        const modalContent = document.getElementById('modalContent');
+        const loginForm = document.getElementById('loginForm');
+        const loginError = document.getElementById('loginError');
+        const adminModal = document.getElementById('adminModal');
+        const adminFeedbackList = document.getElementById('adminFeedbackList');
+        const closeAdminBtn = document.getElementById('closeAdminBtn');
+        const newFeedbackAlert = document.getElementById('newFeedbackAlert');
+        const viewNewFeedbackBtn = document.getElementById('viewNewFeedbackBtn');
+        const searchBtn = document.getElementById('searchBtn');
+        const searchName = document.getElementById('searchName');
+        const searchResults = document.getElementById('searchResults');
+        const resultList = document.getElementById('resultList');
+        const emptyFeedback = document.getElementById('emptyFeedback');
+        const feedbackList = document.getElementById('feedbackList');
+        const feedbackListContainer = document.getElementById('feedbackListContainer');
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 从localStorage加载反馈数据
+            const savedData = localStorage.getItem('airportFeedbackData');
+            if (savedData) {
+                feedbackData = JSON.parse(savedData);
+            }
+            
+            // 初始隐藏反馈列表容器
+            feedbackListContainer.classList.add('hidden');
+        });
+        
+        // 切换联系方式字段显示/隐藏
+        function toggleContactFields(show) {
+            if (show) {
+                contactFields.classList.remove('hidden');
+                contactFields.classList.add('animate-fadeIn');
+            } else {
+                contactFields.classList.add('hidden');
+                document.getElementById('phone').value = '';
+                document.getElementById('wechat').value = '';
+                document.getElementById('email').value = '';
+            }
+        }
+        
+        // 提交反馈表单
+        feedbackForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const feedbackType = document.querySelector('input[name="feedbackType"]:checked').value;
+            const needCallback = document.querySelector('input[name="needCallback"]:checked').value;
+            const name = document.getElementById('name').value;
+            const flightNumber = document.getElementById('flightNumber').value;
+            const message = document.getElementById('message').value;
+            
+            let contact = {};
+            if (needCallback === 'yes') {
+                const phone = document.getElementById('phone').value;
+                const wechat = document.getElementById('wechat').value;
+                const email = document.getElementById('email').value;
+                
+                // 验证至少填写了一项联系方式
+                if (!phone && !wechat && !email) {
+                    alert('请至少填写一项联系方式');
+                    return;
+                }
+                
+                contact = { phone, wechat, email };
+            }
+            
+            // 创建新反馈对象
+            const newFeedback = {
+                id: Date.now().toString(),
+                timestamp: new Date().toISOString(),
+                feedbackType,
+                needCallback,
+                contact,
+                name,
+                flightNumber,
+                message,
+                response: null,
+                solved: false
+            };
+            
+            // 添加到数据列表
+            feedbackData.unshift(newFeedback);
+            
+            // 保存到localStorage
+            localStorage.setItem('airportFeedbackData', JSON.stringify(feedbackData));
+            
+            // 重置表单
+            feedbackForm.reset();
+            toggleContactFields(false);
+            
+            // 显示成功提示
+            alert('反馈提交成功！我们会尽快回复您。');
+            
+            // 如果是管理员模式，更新反馈列表
+            if (adminMode) {
+                renderAdminFeedbackList();
+                showNewFeedbackAlert();
+            }
+        });
+        
+        // 显示新反馈提醒
+        function showNewFeedbackAlert() {
+            // 只有管理员登录后才显示提醒
+            if (adminMode) {
+                newFeedbackAlert.classList.remove('hidden');
+                setTimeout(() => {
+                    newFeedbackAlert.classList.remove('translate-y-20', 'opacity-0');
+                }, 100);
+                
+                // 5秒后自动隐藏
+                setTimeout(() => {
+                    hideNewFeedbackAlert();
+                }, 5000);
+            }
+        }
+        
+        // 隐藏新反馈提醒
+        function hideNewFeedbackAlert() {
+            newFeedbackAlert.classList.add('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                newFeedbackAlert.classList.add('hidden');
+            }, 500);
+        }
+        
+        // 显示登录模态框
+        loginBtn.addEventListener('click', () => {
+            loginModal.classList.remove('hidden');
+            setTimeout(() => {
+                modalContent.classList.remove('scale-95', 'opacity-0');
+                modalContent.classList.add('scale-100', 'opacity-100');
+            }, 10);
+            document.getElementById('adminUsername').focus();
+        });
+        
+        // 隐藏登录模态框
+        function hideLoginModal() {
+            modalContent.classList.remove('scale-100', 'opacity-100');
+            modalContent.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                loginModal.classList.add('hidden');
+            }, 300);
+        }
+        
+        // 登录表单提交
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('adminUsername').value;
+            const password = document.getElementById('adminPassword').value;
+            
+            // 验证账号密码
+            if (username === '1' && password === 'AJ') {
+                adminMode = true;
+                hideLoginModal();
+                loginForm.reset();
+                loginError.classList.add('hidden');
+                
+                // 更新登录按钮文本
+                loginBtn.textContent = '退出管理员';
+                
+                // 显示反馈列表容器
+                feedbackListContainer.classList.remove('hidden');
+                
+                // 渲染反馈列表和管理员列表
+                renderFeedbackList();
+                renderAdminFeedbackList();
+                
+                // 显示管理员后台
+                showAdminModal();
+            } else {
+                loginError.classList.remove('hidden');
+                // 抖动动画
+                loginModal.querySelector('form').classList.add('animate-shake');
+                setTimeout(() => {
+                    loginModal.querySelector('form').classList.remove('animate-shake');
+                }, 500);
+            }
+        });
+        
+        // 显示管理员模态框
+        function showAdminModal() {
+            adminModal.classList.remove('hidden');
+            renderAdminFeedbackList();
+        }
+        
+        // 隐藏管理员模态框
+        closeAdminBtn.addEventListener('click', () => {
+            adminModal.classList.add('hidden');
+        });
+        
+        // 退出管理员模式
+        loginBtn.addEventListener('click', () => {
+            if (adminMode) {
+                adminMode = false;
+                loginBtn.textContent = '管理员登录';
+                adminModal.classList.add('hidden');
+                feedbackListContainer.classList.add('hidden');
+            } else {
+                // 显示登录模态框的逻辑已在上面实现
+            }
+        });
+        
+        // 查看新反馈
+        viewNewFeedbackBtn.addEventListener('click', () => {
+            hideNewFeedbackAlert();
+            if (adminMode) {
+                showAdminModal();
+            } else {
+                loginBtn.click();
+            }
+        });
+        
+        // 搜索反馈
+        searchBtn.addEventListener('click', () => {
+            const name = searchName.value.trim();
+            if (!name) {
+                alert('请输入您的姓名');
+                return;
+            }
+            
+            // 过滤匹配的反馈
+            const results = feedbackData.filter(fb => fb.name === name);
+            
+            // 显示结果
+            resultList.innerHTML = '';
+            if (results.length > 0) {
+                results.forEach(fb => {
+                    const item = document.createElement('div');
+                    item.className = 'border rounded-lg p-4 hover:bg-gray-50 transition-colors';
+                    
+                    let typeClass = 'bg-blue-100 text-blue-800';
+                    if (fb.feedbackType === 'complaint') {
+                        typeClass = 'bg-red-100 text-red-800';
+                    } else if (fb.feedbackType === 'praise') {
+                        typeClass = 'bg-green-100 text-green-800';
+                    }
+                    
+                    item.innerHTML = `
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="px-2 py-1 rounded-full text-xs font-medium ${typeClass}">
+                                ${getFeedbackTypeName(fb.feedbackType)}
+                            </span>
+                            <span class="text-sm text-gray-500">${formatDate(fb.timestamp)}</span>
+                        </div>
+                        <p class="text-gray-800 mb-3">${fb.message}</p>
+                        ${fb.response ? `
+                            <div class="border-t border-gray-200 pt-3 mt-3">
+                                <div class="flex items-center mb-1">
+                                    <span class="text-sm font-medium text-primary">回复：</span>
+                                    <span class="text-sm text-gray-500 ml-2">${formatDate(fb.response.timestamp)}</span>
+                                </div>
+                                <p class="text-gray-700">${fb.response.message}</p>
+                            </div>
+                        ` : '<p class="text-sm text-gray-500 italic">等待回复中...</p>'}
+                    `;
+                    
+                    resultList.appendChild(item);
+                });
+            } else {
+                resultList.innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="fa fa-search text-gray-400 mb-2"></i>
+                        <p class="text-gray-500">未找到匹配的反馈</p>
+                    </div>
+                `;
+            }
+            
+            searchResults.classList.remove('hidden');
+        });
+        
+        // 渲染反馈列表
+        function renderFeedbackList() {
+            if (!adminMode) {
+                feedbackListContainer.classList.add('hidden');
+                return;
+            }
+            
+            feedbackListContainer.classList.remove('hidden');
+            
+            if (feedbackData.length === 0) {
+                emptyFeedback.classList.remove('hidden');
+                feedbackList.classList.add('hidden');
+                return;
+            }
+            
+            emptyFeedback.classList.add('hidden');
+            feedbackList.classList.remove('hidden');
+            feedbackList.innerHTML = '';
+            
+            // 显示所有反馈（管理员可见）
+            feedbackData.forEach(fb => {
+                const item = document.createElement('div');
+                item.className = `border rounded-lg p-4 hover:bg-gray-50 transition-colors ${fb.solved ? 'solved' : ''}`;
+                
+                let typeClass = 'bg-blue-100 text-blue-800';
+                if (fb.feedbackType === 'complaint') {
+                    typeClass = 'bg-red-100 text-red-800';
+                } else if (fb.feedbackType === 'praise') {
+                    typeClass = 'bg-green-100 text-green-800';
+                }
+                
+                item.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="px-2 py-1 rounded-full text-xs font-medium ${typeClass}">
+                            ${getFeedbackTypeName(fb.feedbackType)}
+                        </span>
+                        <span class="text-sm text-gray-500">${formatDate(fb.timestamp)}</span>
+                    </div>
+                    <p class="text-gray-800 mb-3">${fb.message}</p>
+                    ${fb.response ? `
+                        <div class="border-t border-gray-200 pt-3 mt-3">
+                            <div class="flex items-center mb-1">
+                                <span class="text-sm font-medium text-primary">回复：</span>
+                                <span class="text-sm text-gray-500 ml-2">${formatDate(fb.response.timestamp)}</span>
+                            </div>
+                            <p class="text-gray-700">${fb.response.message}</p>
+                        </div>
+                    ` : '<p class="text-sm text-gray-500 italic">等待回复中...</p>'}
+                `;
+                
+                feedbackList.appendChild(item);
+            });
+        }
+        
+        // 渲染管理员反馈列表
+        function renderAdminFeedbackList() {
+            if (!adminMode) return;
+            
+            adminFeedbackList.innerHTML = '';
+            
+            if (feedbackData.length === 0) {
+                adminFeedbackList.innerHTML = `
+                    <div class="text-center py-12">
+                        <i class="fa fa-comments-o text-gray-400 text-3xl mb-3"></i>
+                        <p class="text-gray-500">暂无反馈内容</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            feedbackData.forEach(fb => {
+                const item = document.createElement('div');
+                item.className = `border rounded-lg p-4 hover:bg-gray-50 transition-colors ${fb.solved ? 'solved' : (fb.response ? '' : 'unsolved new-feedback')}`;
+                
+                let typeClass = 'bg-blue-100 text-blue-800';
+                if (fb.feedbackType === 'complaint') {
+                    typeClass = 'bg-red-100 text-red-800';
+                } else if (fb.feedbackType === 'praise') {
+                    typeClass = 'bg-green-100 text-green-800';
+                }
+                
+                item.innerHTML = `
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <span class="px-2 py-1 rounded-full text-xs font-medium ${typeClass}">
+                                ${getFeedbackTypeName(fb.feedbackType)}
+                            </span>
+                            ${fb.needCallback === 'yes' ? 
+                                '<span class="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">需要回访</span>' : ''
+                            }
+                        </div>
+                        <span class="text-sm text-gray-500">${formatDate(fb.timestamp)}</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <p class="text-sm text-gray-500">姓名</p>
+                            <p class="font-medium">${fb.name}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">航班号</p>
+                            <p class="font-medium">${fb.flightNumber}</p>
+                        </div>
+                        ${fb.needCallback === 'yes' ? `
+                            <div class="md:col-span-2">
+                                <p class="text-sm text-gray-500">联系方式</p>
+                                <p>${fb.contact.phone || fb.contact.wechat || fb.contact.email}</p>
+                            </div>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="mb-4">
+                        <p class="text-sm text-gray-500 mb-1">留言内容</p>
+                        <p class="text-gray-800">${fb.message}</p>
+                    </div>
+                    
+                    ${fb.response ? `
+                        <div class="border-t border-gray-200 pt-3 mt-3 mb-4">
+                            <div class="flex items-center mb-1">
+                                <span class="text-sm font-medium text-primary">回复：</span>
+                                <span class="text-sm text-gray-500 ml-2">${formatDate(fb.response.timestamp)}</span>
+                            </div>
+                            <p class="text-gray-700">${fb.response.message}</p>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="flex flex-wrap gap-2">
+                        ${!fb.response ? `
+                            <button class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 btn-hover transition-all" 
+                                onclick="showResponseForm('${fb.id}')">回复</button>
+                        ` : ''}
+                        ${!fb.solved ? `
+                            <button class="px-4 py-2 bg-success text-white rounded-md hover:bg-success/90 btn-hover transition-all" 
+                                onclick="markAsSolved('${fb.id}')">标记为已解决</button>
+                        ` : ''}
+                    </div>
+                `;
+                
+                adminFeedbackList.appendChild(item);
+            });
+        }
+        
+        // 显示回复表单
+        function showResponseForm(feedbackId) {
+            const feedback = feedbackData.find(fb => fb.id === feedbackId);
+            if (!feedback) return;
+            
+            // 创建回复表单
+            const responseForm = document.createElement('div');
+            responseForm.className = 'mt-4 p-4 bg-gray-50 rounded-lg';
+            responseForm.innerHTML = `
+                <div class="mb-3">
+                    <label class="block text-gray-700 font-medium mb-1">回复内容</label>
+                    <textarea id="responseText-${feedbackId}" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" placeholder="请输入回复内容..."></textarea>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors" 
+                        onclick="this.parentElement.parentElement.remove()">取消</button>
+                    <button class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 btn-hover transition-all" 
+                        onclick="submitResponse('${feedbackId}')">提交回复</button>
+                </div>
+            `;
+            
+            // 找到对应的反馈项并插入表单
+            const feedbackItem = adminFeedbackList.querySelector(`[onclick*="showResponseForm('${feedbackId}')"]`);
+            if (feedbackItem) {
+                feedbackItem.parentElement.insertBefore(responseForm, feedbackItem.nextSibling);
+                document.getElementById(`responseText-${feedbackId}`).focus();
+            }
+        }
+        
+        // 提交回复
+        function submitResponse(feedbackId) {
+            const responseText = document.getElementById(`responseText-${feedbackId}`).value.trim();
+            if (!responseText) {
+                alert('请输入回复内容');
+                return;
+            }
+            
+            // 更新反馈数据
+            const feedbackIndex = feedbackData.findIndex(fb => fb.id === feedbackId);
+            if (feedbackIndex !== -1) {
+                feedbackData[feedbackIndex].response = {
+                    message: responseText,
+                    timestamp: new Date().toISOString()
+                };
+                
+                // 保存到localStorage
+                localStorage.setItem('airportFeedbackData', JSON.stringify(feedbackData));
+                
+                // 更新UI
+                renderAdminFeedbackList();
+                renderFeedbackList();
+                
+                // 显示成功提示
+                alert('回复提交成功！');
+            }
+        }
+        
+        // 标记为已解决
+        function markAsSolved(feedbackId) {
+            if (confirm('确定要标记为已解决吗？')) {
+                // 更新反馈数据
+                const feedbackIndex = feedbackData.findIndex(fb => fb.id === feedbackId);
+                if (feedbackIndex !== -1) {
+                    feedbackData[feedbackIndex].solved = true;
+                    
+                    // 保存到localStorage
+                    localStorage.setItem('airportFeedbackData', JSON.stringify(feedbackData));
+                    
+                    // 更新UI
+                    renderAdminFeedbackList();
+                    renderFeedbackList();
+                }
+            }
+        }
+        
+        // 辅助函数：获取反馈类型名称
+        function getFeedbackTypeName(type) {
+            switch (type) {
+                case 'complaint':
+                    return '投诉建议';
+                case 'praise':
+                    return '表扬赞许';
+                case 'inquiry':
+                    return '问询解答';
+                default:
+                    return '未知类型';
+            }
+        }
+        
+        // 辅助函数：格式化日期
+        function formatDate(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+    </script>
+</body>
+</html>
+    
